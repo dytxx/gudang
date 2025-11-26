@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+
+// 1. Definisikan provider sebagai mysql
+// prisma/schema.prisma
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  // 1. user_id
+  id          Int      @id @default(autoincrement()) @map("user_id")
+  
+  // 2. username (Disarankan: tambahkan @unique)
+  username    String   @map("username") 
+  
+  // 3. email (Disarankan: tambahkan @unique)
+  email       String   @map("email")
+  
+  // 4. password (Sekarang aman karena VARCHAR(255) sudah cukup untuk hash)
+  // Saya tetap menyarankan memberi nama 'passwordHash' di kode Prisma untuk kejelasan
+  passwordHash String  @map("password")
+  
+  // 5. full_name
+  fullName    String   @map("full_name")
+  
+  // 6. last_login
+  lastLogin   DateTime? @updatedAt @map("last_login") 
+  
+  // Penambahan Indeks Unik yang Disarankan di Prisma untuk username dan email
+  @@unique([username])
+  @@unique([email])
+  @@map("user") // Nama tabel di database
+}

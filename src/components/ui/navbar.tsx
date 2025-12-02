@@ -43,7 +43,9 @@ const Navbar = () => {
                 <DropdownMenuTrigger className="mr-200">Menu</DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem><Link href="/dashboard">dashboard</Link></DropdownMenuItem>
-                        <DropdownMenuItem><Link href="/WO">Work Order</Link></DropdownMenuItem>            
+                        <DropdownMenuItem><Link href="/WO">Work Order</Link></DropdownMenuItem>   
+                        <DropdownMenuItem><Link href="/FG">Finish Goods</Link></DropdownMenuItem> 
+                        <DropdownMenuItem><Link href="/stock">Stock</Link></DropdownMenuItem>          
                             </DropdownMenuContent>
                             </DropdownMenu>
             <nav className="mx-auto hidden lg:flex items-center justify-end gap-6">

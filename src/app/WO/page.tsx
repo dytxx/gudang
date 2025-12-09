@@ -13,118 +13,184 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const generateWorkOrderNumber = () => {
-    // Simulasi format Work Order: WO-YYYYMMDD-XXXX
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0'); 
-    const formattedDate = `${year}${month}${day}`;
-    const counter = 1; 
-    const sequenceNumber = counter.toString().padStart(4, '0')
-    
-    return `WO${formattedDate}${sequenceNumber}`;
-};
-
 export default function WorkOrderPage() {
-    // 1. Tambahkan state untuk Work Order Number
-    const [workOrderNumber, setWorkOrderNumber] = useState('Generating...');
+    // 1. STATE DEFINITIONS
+    const [woNumber, setWoNumber] = useState('Generating...');
     
-    // 2. Gunakan useEffect untuk membuat atau mengambil nomor saat komponen dimuat
+    const [formData, setFormData] = useState({
+        customer: '',
+        projectName: '',
+        partNumber: '',
+        quantity: '',
+        remarks: '',
+    });
+
+    // 2. FETCH NOMOR OTOMATIS DARI BACKEND
+    const fetchWONumber = async () => {
+        try {
+            const res = await fetch('http://localhost:8080/api/wo/generate-number');
+            const data = await res.json();
+            if (data && data.woNumber) {
+                setWoNumber(data.woNumber);
+            }
+        } catch (error) {
+            console.error("Gagal koneksi ke backend:", error);
+            setWoNumber("Error-Connection");
+        }
+    };
+
     useEffect(() => {
-        // Simulasi fetching dari API/backend
-        // Di aplikasi nyata, Anda akan menggunakan fetch() atau library seperti axios di sini.
-        const timer = setTimeout(() => {
-            const newNumber = generateWorkOrderNumber();
-            setWorkOrderNumber(newNumber);
-        }, 500); // Simulasi delay jaringan 500ms
+        fetchWONumber();
+    }, []);
 
-        // Cleanup function jika komponen dilepas sebelum selesai
-        return () => clearTimeout(timer);
-    }, []); // Array dependensi kosong agar hanya berjalan sekali saat mount
+    // Helper update state form
+    const handleChange = (name: string, value: string) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* --- Main Form Content --- */}
-      <main className="container mx-auto p-8">
-        <h1 className="text-2xl font-semibold mb-6">Create New Work Order</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-6">
-            <FormField label="Customer" required>
-            <Select>
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Customer" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="PT. TELEKOMUNIKASI INDONESIA">PT. TELEKOMUNIKASI INDONESIA</SelectItem>
-                    <SelectItem value="PT. MITRA TELEKOMUNIKASI INDONESIA">PT. MITRA TELEKOMUNIKASI INDONESIA</SelectItem>
-                    <SelectItem value="PT. ICON PLUS INDONESIA">PT. ICON PLUS INDONESIA</SelectItem>
-                </SelectContent>
-            </Select>
-            </FormField>
+    // 3. FUNGSI SUBMIT
+    const handleSubmit = async () => {
+        // Validasi wajib
+        if (!formData.customer || !formData.projectName || !formData.partNumber || !formData.quantity) {
+            alert("Mohon lengkapi semua data wajib (*)!");
+            return;
+        }
 
-            <FormField label="Work Order Number" infoText>
-                <Input
-                // 3. Set nilai Input dari state workOrderNumber
-                   value={workOrderNumber} 
-                   readOnly // Nomor ini harus read-only (tidak bisa diubah pengguna)
-                   placeholder="Generating..."
-                />
-            </FormField>
+        try {
+            const response = await fetch('http://localhost:8080/api/wo/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    woNumber: woNumber,
+                    customer: formData.customer,
+                    projectName: formData.projectName,
+                    partNumber: formData.partNumber,
+                    quantity: formData.quantity,
+                    remarks: formData.remarks
+                }),
+            });
 
-            <FormField label="Remarks">
-              <Textarea placeholder="-" />
-            </FormField>
-          </div>
+            if (response.ok) {
+                const data = await response.json();
+                alert("✅ Sukses: " + data.message);
+                
+                // Reset form
+                setFormData({
+                    customer: '',
+                    projectName: '',
+                    partNumber: '',
+                    quantity: '',
+                    remarks: '',
+                });
+                
+                // Generate nomor baru
+                setWoNumber("Updating...");
+                fetchWONumber();
+            } else {
+                alert("❌ Gagal menyimpan data.");
+            }
+        } catch (error) {
+            alert("❌ Terjadi kesalahan jaringan.");
+        }
+    };
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            <FormField label="Name" required>
-              <Input
-                placeholder="Nama Pekerjaan"
-              />
-            </FormField>
-            <FormField label="Part Number" required>
-            <Select>
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Customer" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="SYSTEM 1">SYSTEM 1</SelectItem>
-                    <SelectItem value="SYSTEM 2">SYSTEM 2</SelectItem>
-                    <SelectItem value="SYSTEM 2">SYSTEM 3</SelectItem>
-                </SelectContent>
-            </Select>
-            </FormField>
-            <FormField label="Work Quantity" required>
-              {/* Using shadcn/ui Select component */}
-              <Input
-                placeholder="Quantity"
-              />
-            </FormField>
-          </div>
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <main className="container mx-auto p-8">
+                <h1 className="text-2xl font-semibold mb-6">Create New Work Order</h1>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                        <FormField label="Customer" required>
+                            <Select 
+                                value={formData.customer}
+                                onValueChange={(val) => handleChange('customer', val)}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Pilih Customer" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PT. TELEKOMUNIKASI INDONESIA">PT. TELEKOMUNIKASI INDONESIA</SelectItem>
+                                    <SelectItem value="PT. MITRA TELEKOMUNIKASI INDONESIA">PT. MITRA TELEKOMUNIKASI INDONESIA</SelectItem>
+                                    <SelectItem value="PT. ICON PLUS INDONESIA">PT. ICON PLUS INDONESIA</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormField>
+
+                        <FormField label="Work Order Number" infoText>
+                            <Input
+                                value={woNumber} 
+                                readOnly 
+                                className="bg-gray-100 font-bold"
+                            />
+                        </FormField>
+
+                        <FormField label="Remarks">
+                            <Textarea 
+                                placeholder="Keterangan tambahan..." 
+                                value={formData.remarks}
+                                onChange={(e) => handleChange('remarks', e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                        <FormField label="Project Name" required>
+                            <Input
+                                placeholder="Nama Pekerjaan"
+                                value={formData.projectName}
+                                onChange={(e) => handleChange('projectName', e.target.value)}
+                            />
+                        </FormField>
+
+                        <FormField label="Part Number" required>
+                            <Select 
+                                value={formData.partNumber}
+                                onValueChange={(val) => handleChange('partNumber', val)}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Pilih Part Number" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="SYSTEM 1">SYSTEM 1</SelectItem>
+                                    <SelectItem value="SYSTEM 2">SYSTEM 2</SelectItem>
+                                    <SelectItem value="SYSTEM 3">SYSTEM 3</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormField>
+
+                        <FormField label="Work Quantity" required>
+                            <Input
+                                type="number"
+                                placeholder="Jumlah"
+                                value={formData.quantity}
+                                onChange={(e) => handleChange('quantity', e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+                </div>
+
+                {/* --- Action Section --- */}
+                <div className="mt-8 pt-6 border-t flex justify-end">
+                    <Button 
+                        onClick={handleSubmit}
+                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded"
+                    >
+                        Confirm Work Order
+                    </Button>
+                </div>
+            </main>
         </div>
-
-        {/* --- Add Detail Button (Action section) --- */}
-        <div className="mt-8 pt-6 border-t">
-          <Button className="bg-red-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-            Confirm
-          </Button>
-        </div>
-      </main>
-    </div>
-  );
+    );
 }
 
-// --- Reusable Form Field Component ---
-// This helps structure the Label and Input consistently.
-
+// --- Reusable Component ---
 interface FormFieldProps {
   label: string;
   children: React.ReactNode;
   required?: boolean;
-  infoText?: boolean; // For the circle-i icon shown next to 'Doc Number'
+  infoText?: boolean; 
 }
 
 function FormField({ label, children, required, infoText }: FormFieldProps) {
@@ -136,7 +202,7 @@ function FormField({ label, children, required, infoText }: FormFieldProps) {
         </Label>
         {required && <span className="text-red-500">*</span>}
         {infoText && (
-          <span className="text-gray-400" title="Informational field">
+          <span className="text-gray-400 cursor-help" title="Auto-generated by system">
             ⓘ
           </span>
         )}

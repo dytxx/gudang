@@ -12,8 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from 'next/router';
 
 export default function WorkOrderPage() {
+
+    const router = useRouter(); // Import useRouter dari next/navigation
+
+    // --- PROTEKSI HALAMAN ---
+    useEffect(() => {
+        const role = localStorage.getItem('user_role');
+        // Jika bukan admin, tendang balik
+        if (role !== 'admin') {
+            alert("AKSES DITOLAK: Halaman ini khusus Admin Logistik!");
+            router.push('/');
+        }
+    });
     // 1. STATE DEFINITIONS
     const [woNumber, setWoNumber] = useState('Generating...');
     

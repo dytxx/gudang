@@ -1,83 +1,145 @@
 'use client'
 
-import { useState } from "react";
-import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { DialogTitle } from "@/components/ui/dialog"
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-
-
+import { 
+    LogOut, 
+    LayoutDashboard, // Dashboard
+    ClipboardList,   // WO
+    ShieldCheck,     // QC
+    Warehouse,       // Storage
+    Truck,           // Delivery
+    Boxes,           // Stock
+    Users,           // User Management
+    Menu             // Icon Menu Hamburger
+} from "lucide-react"
 
 const Navbar = () => {
-    return (
-        <header className="flex h-20 w-full shrink-0 sticky top-0 z-10 items-center px-4 md:px-10 bg-white">
-            <Link href="/" className="mr-10 hidden lg:flex" prefetch={false}>
-                <span className="self-center text-2xl font-semibold whitespace-nowrap">
-                    Warehouse
-                </span>
-            </Link>
-            <DropdownMenu>
-                <DropdownMenuTrigger className="mr-200">Menu</DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem><Link href="/dashboard">Dashboard</Link></DropdownMenuItem>
-                        <DropdownMenuItem><Link href="/WO">Work Order</Link></DropdownMenuItem>   
-                        <DropdownMenuItem><Link href="/FG">Finish Goods</Link></DropdownMenuItem> 
-                        <DropdownMenuItem><Link href="/stock">Stock</Link></DropdownMenuItem>
-                        <DropdownMenuItem><Link href="/Delivery">Delivery</Link></DropdownMenuItem>          
-                        <DropdownMenuItem><Link href="/Storage">Storage</Link></DropdownMenuItem>  
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-            <nav className="mx-auto hidden lg:flex items-center justify-end gap-6">
-                <Link
-                    href="/"
-                    className="group inline-flex h-9 w-max items-center font-semibold justify-center px-4 py-2 hover:text-redplt transition-transform duration-300 ease-in-out hover:scale-105"
-                    prefetch={false}
-                >
-                    Home
-                </Link>
-                <Link
-                    href="#"
-                    className="group inline-flex h-9 w-max items-center font-semibold justify-center px-4 py-2 hover:text-redplt transition-transform duration-300 ease-in-out hover:scale-105"
-                    prefetch={false}
-                >
-                    <DropdownMenu>
-                            <DropdownMenuTrigger>Profile</DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>Profile</DropdownMenuItem>
-                                <DropdownMenuItem><Link href="/login">Login</Link></DropdownMenuItem>
-                                
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                </Link>
-            </nav>
-           
-         
+    const router = useRouter();
+    const [role, setRole] = useState<string | null>(null);
+    const [username, setUsername] = useState<string | null>(null);
 
+    // FUNGSI UNTUK CEK STATUS LOGIN
+    const checkLoginStatus = () => {
+        const r = localStorage.getItem('user_role');
+        const u = localStorage.getItem('user_name');
+        setRole(r);
+        setUsername(u);
+    };
+
+    useEffect(() => {
+        checkLoginStatus();
+        const handleLoginEvent = () => checkLoginStatus();
+        window.addEventListener('login-success', handleLoginEvent);
+        return () => {
+            window.removeEventListener('login-success', handleLoginEvent);
+        };
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        setRole(null);
+        setUsername(null);
+        router.push('/login');
+    }
+
+    // KONFIGURASI MENU & IKON
+    const menus = [
+        { 
+            label: "Dashboard", 
+            href: "/dashboard", 
+            allowed: ['admin', 'manager', 'superuser'],
+            icon: <LayoutDashboard className="w-4 h-4 mr-2"/> 
+        },
+        { 
+            label: "Work Order", 
+            href: "/WO", 
+            allowed: ['admin', 'superuser'],
+            icon: <ClipboardList className="w-4 h-4 mr-2 text-blue-600"/> 
+        },
+        { 
+            label: "QC Check", 
+            href: "/FG", 
+            allowed: ['admin', 'qc', 'superuser'],
+            icon: <ShieldCheck className="w-4 h-4 mr-2 text-green-600"/> 
+        },
+        { 
+            label: "Storage", 
+            href: "/Storage", 
+            allowed: ['admin', 'operator', 'superuser'],
+            icon: <Warehouse className="w-4 h-4 mr-2 text-purple-600"/> 
+        },
+        { 
+            label: "Delivery Order", 
+            href: "/Delivery", 
+            allowed: ['admin', 'operator', 'superuser'],
+            icon: <Truck className="w-4 h-4 mr-2 text-orange-600"/> 
+        },
+        { 
+            label: "Stock Monitor", 
+            href: "/stock", 
+            allowed: ['admin', 'manager', 'operator', 'superuser'],
+            icon: <Boxes className="w-4 h-4 mr-2 text-slate-600"/> 
+        },
+        { 
+            label: "User Management", 
+            href: "/users", 
+            allowed: ['superuser'],
+            icon: <Users className="w-4 h-4 mr-2 text-red-600"/> 
+        }, 
+    ];
+    
+    return (
+        <header className="flex h-20 w-full shrink-0 sticky top-0 z-50 items-center px-4 md:px-10 bg-white border-b shadow-sm justify-between">
+            <Link href="/" className="font-bold text-2xl text-blue-700 flex items-center gap-2">
+                WMSystem 
+                {role && <span className="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600 font-normal uppercase">{role}</span>}
+            </Link>
+            
+            <div className="flex items-center gap-4">
+                {role ? (
+                    <>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="px-6 py-2 border rounded-md hover:bg-gray-50 font-medium flex items-center gap-2 bg-blue-50 text-blue-800 border-blue-200 transition-colors">
+                                <Menu className="w-5 h-5"/> Menu Aplikasi ▼
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-60 p-2">
+                                {menus.map((menu, idx) => {
+                                    if (role && menu.allowed.includes(role)) {
+                                        return (
+                                            <DropdownMenuItem key={idx} asChild>
+                                                <Link href={menu.href} className="w-full cursor-pointer flex items-center py-2.5 px-2 font-medium">
+                                                    {menu.icon}
+                                                    {menu.label}
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )
+                                    }
+                                    return null;
+                                })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <div className="flex items-center gap-3">
+                             <div className="text-right hidden md:block">
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Logged in as</p>
+                                <p className="font-bold text-sm text-gray-800">{username}</p>
+                            </div>
+                            <button onClick={handleLogout} className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors border border-red-100" title="Logout">
+                                <LogOut className="w-5 h-5"/>
+                            </button>
+                        </div>
+                    </>
+                ) : (
+                    <Link href="/login" className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold transition-all shadow-md hover:shadow-lg">
+                        Login Portal
+                    </Link>
+                )}
+            </div>
         </header>
     )
 }

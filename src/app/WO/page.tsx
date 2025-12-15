@@ -111,8 +111,8 @@ export default function WorkOrderPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="PT. TELEKOMUNIKASI INDONESIA">PT. TELEKOMUNIKASI INDONESIA</SelectItem>
-                                    <SelectItem value="PT. MITRA TELEKOMUNIKASI INDONESIA">PT. MITRA TELEKOMUNIKASI INDONESIA</SelectItem>
-                                    <SelectItem value="PT. ICON PLUS INDONESIA">PT. ICON PLUS INDONESIA</SelectItem>
+                                    <SelectItem value="PT. XL AXIATA">PT. XL AXIATA</SelectItem>
+                                    <SelectItem value="PT. INDOSAT OOREDOO HUTCHISON">PT. INDOSAT OOREDOO HUTCHISON</SelectItem>
                                 </SelectContent>
                             </Select>
                         </FormField>

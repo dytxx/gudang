@@ -45,7 +45,8 @@ const Navbar = () => {
                         <DropdownMenuItem><Link href="/dashboard">Dashboard</Link></DropdownMenuItem>
                         <DropdownMenuItem><Link href="/WO">Work Order</Link></DropdownMenuItem>   
                         <DropdownMenuItem><Link href="/FG">Finish Goods</Link></DropdownMenuItem> 
-                        <DropdownMenuItem><Link href="/stock">Stock</Link></DropdownMenuItem>        
+                        <DropdownMenuItem><Link href="/stock">Stock</Link></DropdownMenuItem>
+                        <DropdownMenuItem><Link href="/Delivery">Delivery</Link></DropdownMenuItem>          
                         <DropdownMenuItem><Link href="/Storage">Storage</Link></DropdownMenuItem>  
                             </DropdownMenuContent>
                             </DropdownMenu>

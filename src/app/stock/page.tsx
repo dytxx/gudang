@@ -1,180 +1,206 @@
 'use client'
 
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Search, RotateCcw } from 'lucide-react'; // Menggunakan ikon dari lucide-react
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { 
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Search, Edit, Trash2, Loader2, Save } from 'lucide-react';
 
-// --- Data Dummy (Simulasi Data Stok yang Sudah Di-Acc) ---
-const dummyStockData = [
-    {
-        id: 'FG1001',
-        productName: 'Wireless Router 5G-PRO',
-        productCode: 'PRO-5G-RT',
-        quantity: 500,
-        unit: 'Pcs',
-        qcReport: 'QC251128001',
-        acceptedDate: '28/11/25',
-        location: 'WH-A01',
-    },
-    {
-        id: 'FG1002',
-        productName: 'Fiber Optic Cable (500m)',
-        productCode: 'FOC-500M',
-        quantity: 120,
-        unit: 'Roll',
-        qcReport: 'QC251129002',
-        acceptedDate: '29/11/25',
-        location: 'WH-B03',
-    },
-    {
-        id: 'FG1003',
-        productName: 'Network Switch 24 Port',
-        productCode: 'SW-24P-V2',
-        quantity: 350,
-        unit: 'Unit',
-        qcReport: 'QC251201003',
-        acceptedDate: '01/12/25',
-        location: 'WH-A01',
-    },
-    {
-        id: 'FG1004',
-        productName: 'Power Adapter 12V 2A',
-        productCode: 'PA-12V-001',
-        quantity: 1500,
-        unit: 'Pcs',
-        qcReport: 'QC251202004',
-        acceptedDate: '02/12/25',
-        location: 'WH-C05',
-    },
-];
+export default function StockPage() {
+    const [stocks, setStocks] = useState<any[]>([]);
+    const [search, setSearch] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
-export default function ApprovedFinishGoodsStockPage() {
-    // State untuk menyimpan data stok yang akan ditampilkan (bisa disaring)
-    const [stockData, setStockData] = useState(dummyStockData);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(false); // Untuk simulasi loading saat refresh
+    // State untuk Edit/Delete
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editData, setEditData] = useState<any>(null);
 
-    // Fungsi untuk menyaring data berdasarkan Product Code atau Product Name
-    const handleSearch = () => {
-        const lowerCaseSearch = searchTerm.toLowerCase();
-        
-        const filteredData = dummyStockData.filter(item => 
-            item.productName.toLowerCase().includes(lowerCaseSearch) || 
-            item.productCode.toLowerCase().includes(lowerCaseSearch) ||
-            item.qcReport.toLowerCase().includes(lowerCaseSearch)
-        );
-
-        setStockData(filteredData);
-    };
-
-    // Fungsi untuk mereset pencarian dan memuat ulang (simulasi)
-    const handleRefresh = () => {
+    // --- 1. FETCH DATA (READ) ---
+    const fetchStocks = async () => {
         setIsLoading(true);
-        setSearchTerm('');
-        // Simulasi fetching data dari API
-        setTimeout(() => {
-            setStockData(dummyStockData); // Reset ke data asli
-            setIsLoading(false);
-        }, 800);
+        try {
+            const res = await fetch('http://localhost:8080/api/storage');
+            const data = await res.json();
+            // Jika return object (kunci ID), ubah jadi array
+            const arr = Array.isArray(data) ? data : Object.values(data);
+            setStocks(arr);
+        } catch (e) { console.error(e); } 
+        finally { setIsLoading(false); }
     };
+
+    useEffect(() => { fetchStocks(); }, []);
+
+    // --- 2. DELETE HANDLER ---
+    const handleDelete = async (id: string) => {
+        if (!confirm("Apakah Anda yakin ingin menghapus barang ini?")) return;
+
+        try {
+            const res = await fetch(`http://localhost:8080/api/storage/${id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                alert("✅ Data dihapus!");
+                fetchStocks(); // Refresh tabel
+            } else {
+                alert("❌ Gagal menghapus");
+            }
+        } catch (e) { alert("Error koneksi"); }
+    };
+
+    // --- 3. UPDATE HANDLER ---
+    const openEditModal = (item: any) => {
+        setEditData({ ...item }); // Copy object agar tidak mutasi langsung
+        setIsEditDialogOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editData) return;
+
+        try {
+            const res = await fetch(`http://localhost:8080/api/storage/${editData.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editData.name,
+                    quantity: editData.quantity,
+                    location: editData.location
+                }),
+            });
+            
+            if (res.ok) {
+                alert("✅ Data berhasil diupdate!");
+                setIsEditDialogOpen(false);
+                fetchStocks();
+            } else {
+                alert("❌ Gagal update");
+            }
+        } catch (e) { alert("Error koneksi"); }
+    };
+
+    // Filter Pencarian
+    const filtered = stocks.filter(item => 
+        (item.name?.toLowerCase() || '').includes(search.toLowerCase()) || 
+        (item.sku?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (item.fg_number?.toLowerCase() || '').includes(search.toLowerCase())
+    );
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="container mx-auto p-8">
-                <h1 className="text-2xl font-bold mb-6 flex items-center">
-                    📦 Finish Goods Approved Stock
-                </h1>
-                <p className="text-gray-600 mb-6">
-                    Daftar stok barang jadi yang telah melewati proses Quality Check (QC) dan disetujui untuk masuk gudang (Accepted).
-                </p>
-
-                {/* --- Kontrol Pencarian dan Refresh --- */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    {/* Input Pencarian */}
-                    <div className="flex flex-1 max-w-lg relative">
-                        <Input
-                            placeholder="Cari berdasarkan Kode Produk, Nama, atau No. QC..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSearch();
-                            }}
-                            className="pr-10"
+        <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+            <main className="container mx-auto">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        📦 Manajemen Stok Gudang
+                    </h1>
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                        <Input 
+                            placeholder="Cari FG ID, Produk..." 
+                            className="pl-8 bg-white" 
+                            onChange={(e) => setSearch(e.target.value)} 
                         />
-                         <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={handleSearch} 
-                            className="absolute right-0 top-0 h-full px-3"
-                        >
-                            <Search className="h-4 w-4 text-gray-500" />
-                        </Button>
                     </div>
-
-                    {/* Tombol Refresh */}
-                    <Button 
-                        onClick={handleRefresh} 
-                        variant="outline"
-                        disabled={isLoading}
-                    >
-                        <RotateCcw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                        {isLoading ? 'Loading...' : 'Refresh Data'}
-                    </Button>
                 </div>
 
-                {/* --- Tabel Stok --- */}
-                <div className="border rounded-lg overflow-hidden shadow-sm">
-                    {stockData.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                            Tidak ada data stok yang ditemukan.
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader className="bg-gray-100">
-                                <TableRow>
-                                    <TableHead className="w-[100px]">ID</TableHead>
-                                    <TableHead>Product Code</TableHead>
-                                    <TableHead>Product Name</TableHead>
-                                    <TableHead className="text-right">Quantity</TableHead>
-                                    <TableHead>Unit</TableHead>
-                                    <TableHead>QC Report</TableHead>
-                                    <TableHead>Acc. Date</TableHead>
-                                    <TableHead>Location</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {stockData.map((item) => (
+                <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-slate-100">
+                            <TableRow>
+                                <TableHead className="w-[120px]">FG Number</TableHead>
+                                <TableHead>Produk</TableHead>
+                                <TableHead>Lokasi</TableHead>
+                                <TableHead className="text-right">Qty</TableHead>
+                                <TableHead className="text-center w-[150px]">Aksi</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="animate-spin inline mr-2"/> Loading...</TableCell></TableRow>
+                            ) : filtered.length === 0 ? (
+                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-gray-500">Data tidak ditemukan.</TableCell></TableRow>
+                            ) : (
+                                filtered.map((item) => (
                                     <TableRow key={item.id}>
-                                        <TableCell className="font-medium">{item.id}</TableCell>
-                                        <TableCell>{item.productCode}</TableCell>
-                                        <TableCell>{item.productName}</TableCell>
-                                        <TableCell className="text-right font-semibold text-blue-600">
-                                            {item.quantity.toLocaleString('id-ID')}
+                                        <TableCell className="font-mono font-bold text-blue-600 text-xs">{item.fg_number || '-'}</TableCell>
+                                        <TableCell>
+                                            <div className="font-medium">{item.name}</div>
+                                            <div className="text-xs text-gray-400">{item.sku}</div>
                                         </TableCell>
-                                        <TableCell>{item.unit}</TableCell>
-                                        <TableCell className="text-sm text-gray-500">{item.qcReport}</TableCell>
-                                        <TableCell>{item.acceptedDate}</TableCell>
-                                        <TableCell className="font-medium bg-green-50/50">{item.location}</TableCell>
+                                        <TableCell>
+                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold border border-green-200">
+                                                {item.location}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right font-bold">{item.quantity}</TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="flex justify-center gap-2">
+                                                <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEditModal(item)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-                
-                {/* --- Footer Informasi --- */}
-                <div className="mt-4 text-sm text-gray-500">
-                    Total {stockData.length} SKU terdaftar.
-                </div>
+
+                {/* --- MODAL EDIT --- */}
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Edit Data Barang</DialogTitle>
+                        </DialogHeader>
+                        {editData && (
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">FG Number</Label>
+                                    <Input value={editData.fg_number} disabled className="col-span-3 bg-gray-100" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Nama</Label>
+                                    <Input 
+                                        value={editData.name} 
+                                        onChange={(e) => setEditData({...editData, name: e.target.value})}
+                                        className="col-span-3" 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Qty</Label>
+                                    <Input 
+                                        type="number"
+                                        value={editData.quantity} 
+                                        onChange={(e) => setEditData({...editData, quantity: e.target.value})}
+                                        className="col-span-3" 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Lokasi</Label>
+                                    <Input 
+                                        value={editData.location} 
+                                        onChange={(e) => setEditData({...editData, location: e.target.value})}
+                                        className="col-span-3" 
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                            <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">
+                                <Save className="w-4 h-4 mr-2"/> Simpan Perubahan
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </main>
         </div>
     );
